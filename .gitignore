@@ -1,0 +1,12 @@
+*.retry
+*.iso
+packer/packer_cache/
+packer/answer_files
+packer/*_builder.json
+
+# test stuff
+roles/test/
+*test.*
+new_keys
+
+*.code-workspace

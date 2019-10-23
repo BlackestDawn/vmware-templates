@@ -1,0 +1,62 @@
+{
+  "builders": [
+    {
+      "name": "{{ build_name }}",
+      "type": "vsphere-iso",
+
+      "vcenter_server": "{{ vcenter_host }}",
+      "username": "{{ vcenter_user }}",
+      "password": "{{ vcenter_password }}",
+      "datacenter": "{{ vcenter_datacenter }}",
+      "cluster": "{{ vcenter_cluster }}",
+      "insecure_connection": {{ (not vcenter_certs) | to_json }},
+      
+      "communicator": "{{ packer_comm }}",
+      "{{ packer_comm }}_username": "{{ standard_user }}",
+      "{{ packer_comm }}_password": "{{ standard_pass }}",
+      "{{ packer_comm }}_timeout": "{{ comm_timeout }}s",
+
+      "vm_name": "{{ template_prefix }}{{ template_name }}_{{ build_day }}",
+      "folder": "{{ template_folder }}",
+      "datastore": "{{ template_datastore }}",
+      "notes": "Autocreated on {{ build_day }}",
+
+      "CPUs": {{ cpu_count }},
+      "RAM": {{ ram_size }},
+      "CPU_hot_plug": true,
+      "RAM_hot_plug": true,
+      "disk_size": {{ disk_size }},
+      "guest_os_type": "{{ os_type }}",
+      "disk_controller_type": "{{ disk_type }}",
+      "disk_thin_provisioned": true,
+      "network": "{{ vcenter_network }}",
+      "network_card": "vmxnet3",
+
+      "iso_paths": [
+{% if iso_name is defined %}
+        "[{{ iso_datastore }}] {{ install_iso }}",
+{% endif %}
+        "[{{ iso_datastore }}] {{ remote_ua_iso }}"
+      ],
+      "boot_wait": "5s",
+{% if boot_cmd is defined %}
+      "boot_command": {{ boot_cmd | to_json }},
+{% endif %}
+      "shutdown_timeout": "{{ power_timeout }}",
+      "convert_to_template": true
+    }
+{% if prov_scripts is defined %}
+  ],
+
+  "provisioners": [
+    {
+      "type": "{{ packer_shell }}",
+      "environment_vars": [
+        "ADMIN_USER={{ standard_user }}"
+      ],
+      "scripts": {{ prov_scripts | to_json }},
+      "timeout": "{{ prov_timeout }}s"
+    }
+{% endif %}
+  ]
+}

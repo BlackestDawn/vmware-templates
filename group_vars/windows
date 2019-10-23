@@ -1,0 +1,11 @@
+base_os: windows
+packer_comm: winrm
+standard_user: Administrator
+os_type: windows9Server64Guest
+packer_shell: powershell
+prov_scripts:
+- provision-windows.ps1
+- enable-ssh.ps1
+- cleanup.ps1
+iso_template_files:
+- name: Autounattend.xml

@@ -1,0 +1,146 @@
+#_preseed_V1
+#
+
+# localisation
+d-i debian-installer/locale string en_US.utf8
+d-i console-setup/ask_detect boolean false
+d-i console-setup/layoutcode string us
+d-i keyboard-configuration/xkb-keymap string us
+d-i keyboard-configuration/layoutcode string us
+d-i localechooser/supported-locales multiselect en_US.UTF-8, sv_SE.UTF-8
+
+# networking
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string {{ inventory_hostname }}-template
+d-i netcfg/get_domain string units.cloud
+
+# apt mirrors
+d-i mirror/country string manual
+d-i mirror/http/hostname string {{ mirror_host }}
+d-i mirror/http/directory string /{{ mirror_dir }}
+{% if mirror_suite is defined %}
+d-i mirror/suite string {{ mirror_suite }}
+d-i mirror/udeb/suite string {{ mirror_suite }}
+d-i mirror/udeb/components multiselect main, restricted
+{% endif %}
+d-i mirror/http/proxy string
+
+# clock and time zone
+d-i clock-setup/utc boolean true
+d-i time/zone string Europe/Stockholm
+d-i clock-setup/ntp boolean true
+d-i clock-setup/ntp-server string ntp1.sp.se ntp2.sp.se
+
+### Partitioning
+d-i preseed/early_command string umount /media || true
+d-i partman-auto/method string lvm
+d-i partman-auto-lvm/guided_size string max
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-auto-lvm/new_vg_name string system
+d-i partman-md/device_remove_md boolean true
+d-i partman-md/confirm boolean true
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+d-i partman-basicmethods/method_only boolean false
+
+### GPT
+d-i partman-basicfilesystems/choose_label string gpt
+d-i partman-basicfilesystems/default_label string gpt
+d-i partman-partitioning/choose_label string gpt
+d-i partman-partitioning/default_label string gpt
+d-i partman/choose_label string gpt
+d-i partman/default_label string gpt
+
+### EFI
+d-i partman-efi/non_efi_system boolean true
+
+### Grub
+d-i grub-installer/only_debian boolean true
+
+### Disk layout
+d-i partman-auto/expert_recipe string         \
+  boot-root ::                                \
+    1 1 1 free                                \
+      $bios_boot{ }                           \
+      method{ biosgrub }                      \
+    .                                         \
+    512 512 512 ext4                          \
+      $primary{ }                             \
+      $bootable{ }                            \
+      method{ format } format{ }              \
+      use_filesystem{ } filesystem{ ext4 }    \
+      mountpoint{ /boot }                     \
+    .                                         \
+    2048 2048 2048 linux-swap                 \
+      $lvmok{ }                               \
+      method{ swap } format{ }                \
+      lv_name{ swap }                         \
+    .                                         \
+    4096 4096 4096 ext4                       \
+      $lvmok{ }                               \
+      method{ format } format{ }              \
+      use_filesystem{ } filesystem{ ext4 }    \
+      mountpoint{ / }                         \
+      lv_name{ lv_root }                      \
+    .                                         \
+    4096 4096 4096 ext4                       \
+      $lvmok{ }                               \
+      method{ format } format{ }              \
+      use_filesystem{ } filesystem{ ext4 }    \
+      mountpoint{ /home }                     \
+      lv_name{ lv_home }                      \
+    .                                         \
+    4096 4096 4096 ext4                       \
+      $lvmok{ }                               \
+      method{ format } format{ }              \
+      use_filesystem{ } filesystem{ ext4 }    \
+      mountpoint{ /var }                      \
+      lv_name{ lv_var }                       \
+    .                                         \
+    2048 2048 2048 ext4                       \
+      $lvmok{ }                               \
+      method{ format } format{ }              \
+      use_filesystem{ } filesystem{ ext4 }    \
+      mountpoint{ /tmp }                      \
+      lv_name{ lv_tmp }                       \
+    .
+
+# users
+d-i passwd/root-login boolean false
+#d-i passwd/root-password password <redacted>
+#d-i passwd/root-password-again password <redacted>
+d-i passwd/user-fullname string DGC default admin
+d-i passwd/username string {{ standard_user }}
+d-i passwd/user-password password {{ standard_pass }}
+d-i passwd/user-password-again password {{ standard_pass }}
+d-i user-setup/allow-password-weak boolean true
+d-i user-setup/encrypt-home boolean false
+
+# packages
+d-i apt-setup/restricted boolean true
+d-i apt-setup/universe boolean true
+d-i apt-setup/multiverse boolean true
+d-i apt-setup/backports boolean true
+d-i base-installer/kernel/image string linux-image linux-generic
+d-i base-installer/install-recommends boolean true
+tasksel tasksel/first multiselect standard
+d-i pkgsel/include string wget curl openssh-server open-vm-tools debconf-utils
+d-i pkgsel/upgrade select full-upgrade
+d-i pkgsel/update-policy select none
+popularity-contest popularity-contest/participate boolean false
+
+# boot loader
+d-i grub-installer/bootdev  string /dev/sda
+d-i grub-installer/only_debian boolean true
+
+d-i preseed/late_command string \
+    cp -r /custom /target/; \
+    /bin/echo '{{ standard_user }} ALL=(ALL) NOPASSWD: ALL' > /target/etc/sudoers.d/{{ standard_user }}; \
+    chmod 0640 /target/etc/sudoers.d/{{ standard_user }}; 
+
+# hide the shutdown notice
+d-i finish-install/reboot_in_progress note

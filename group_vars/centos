@@ -1,0 +1,4 @@
+mirror_host: mirror.nsc.liu.se
+mirror_dir: CentOS
+os_type: centos64Guest
+iso_fetch_url: http://{{ mirror_host }}/{{ mirror_dir }}/{{ os_versions.major }}/isos/x86_64/CentOS-{{ os_versions.major }}-x86_64-{{ os_versions.patch }}-boot.iso

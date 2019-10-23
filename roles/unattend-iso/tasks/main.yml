@@ -1,0 +1,36 @@
+---
+- name: Creating temp-directory for ISO-files
+  tempfile:
+    state: directory
+    suffix: -ISO
+  register: iso_dir
+  tags: create-iso
+
+- name: Finding directories with files for inclusion
+  find:
+    file_type: directory
+    paths: "files/iso-files"
+    patterns: "{{ [ 'common' ] + group_names + [ inventory_hostname ] }}"
+    recurse: no
+  register: dirmatches
+  tags: create-iso
+
+- name: Creating unattend ISO
+  include_tasks: "create-{{ base_os }}.yml"
+  tags: create-iso
+
+- name: Copying ISO to VMware
+  vsphere_copy:
+    host: "{{ vcenter_host }}"
+    username: "{{ vcenter_user }}"
+    password: "{{ vcenter_password }}"
+    datacenter: "{{ vcenter_datacenter }}"
+    datastore: "{{ iso_datastore }}"
+    path: "{{ remote_ua_iso }}"
+    validate_certs: "{{ vcenter_certs }}"
+    src: "{{ iso_dir.path }}/{{ ua_iso_name }}"
+    timeout: 3600
+  register: task_result
+  retries: 3
+  delay: 10
+  until: task_result is not failed

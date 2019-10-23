@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+
+mkdir ${HOME}/{.ssh,bin}
+
+echo "Copying in default authorized keys for SSH"
+cp /custom/authorized_keys ${HOME}/.ssh
+chmod 0750 ${HOME}/.ssh
+chmod 0640 ${HOME}/.ssh/authorized_keys
+
+echo "Copying in SSHd key-generation service"
+[ -d /etc/systemd/system ] || sudo /etc/systemd/system
+sudo cp /custom/ssh-host-keygen.service /etc/systemd/system
+sudo systemctl enable ssh-host-keygen.service
+
+echo "Copying in additional scripts and executables"
+[ -d /custom/bin ] && sudo cp -r /custom/bin/* /usr/local/bin/
+[ -d /custom/sbin ] && sudo cp -r /custom/sbin/* /usr/local/sbin/
+
+{% if inventory_hostname in groups['debian_based'] %}
+# Cloud init interaction fixes for VMware customization.
+[ -d /etc/cloud ] && sudo touch /etc/cloud/cloud-init.disabled
+sudo apt-get purge -y cloud-init
+sudo mkdir -p /etc/systemd/system/open-vm-tools.service.d
+/bin/echo -e "[Unit]\nAfter=dbus.service" | sudo tee /etc/systemd/system/open-vm-tools.service.d/override.conf
+
+# Update and install extra tools
+sudo apt-get update
+sudo apt-get dist-upgrade -y
+sudo apt-get install -y aptitude apt-transport-https vim-nox vim-lastplace whois python3 python3-pip python3-apt cloud-guest-utils parted gdisk
+sudo apt-get autoremove -y
+sudo apt-get autoclean -y
+{% elif inventory_hostname in groups['redhat_based'] %}
+# Update and install extra tools
+sudo dnf updateinfo
+sudo dnf upgrade -y
+sudo dnf install -y policycoreutils-python libselinux-python whois cloud-utils-growpart parted gdisk vim-enhanced {% if os_versions.major|int is ge 8 %}python3 python3-dnf python3-pip python3-dnf-plugin-versionlock{% else %}python36 python36-pip python2-dnf python2-dnf-plugin-versionlock yum-plugin-versionlock{% endif %}
+{% endif %}
+
+echo "Making sure applicable added scripts and binaries are executable"
+if [ $(ls -a ${HOME}/bin/ | wc -l) -gt 2 ]; then
+  chmod 0755 ${HOME}/bin/*
+fi
+if [ $(ls -a /usr/local/bin/ | wc -l) -gt 2 ]; then
+  sudo chmod 0755 /usr/local/bin/*
+fi
+if [ $(ls -a /usr/local/sbin/ | wc -l) -gt 2 ]; then
+  sudo chmod 0755 /usr/local/sbin/*
+fi
+
+echo "Finalizing provisioning and cleaning up"
+# Removing SSH-server keys, they will be recreated on next startup
+sudo rm -f /etc/ssh/ssh_host_*_key*
+# Removing added customization dirs, all should be utilized
+[ -d /custom ] && sudo rm -rf /custom
+# Adding to PATH
+echo 'export PATH=${PATH}:${HOME}/bin' >> ${HOME}/.bashrc
+# Making sure they own everything in their home-dir
+sudo chown -R ${ADMIN_USER}:${ADMIN_USER} /home/${ADMIN_USER}
+# Making sure LVM takes rest of free space
+sudo /usr/local/sbin/resize-lvm.sh
+# Forcing timezone
+sudo ln -sf /usr/share/zoneinfo/Europe/Stockholm /etc/localtime

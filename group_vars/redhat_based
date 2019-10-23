@@ -1,0 +1,12 @@
+os_versions:
+  major: "{{ mirror_suite.split('.')[0] }}"
+  minor: "{{ mirror_suite.split('.')[1] | default('') }}"
+  patch: "{{ mirror_suite.split('.')[2] | default('') }}"
+geniso_info:
+  bootbin: isolinux/isolinux.bin
+  bootcat: isolinux/boot.cat
+  bootfile: images/efiboot.img
+iso_template_files:
+- name: ks.cfg
+- name: isolinux.cfg
+  subdir: isolinux

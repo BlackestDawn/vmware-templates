@@ -1,0 +1,91 @@
+---
+- name: Creating temporary source dir
+  tempfile:
+    state: directory
+    suffix: "-sources"
+  register: iso_source_dir
+
+- name: Creating extra sub-dirs in source dir
+  file:
+    state: directory
+    path: "{{ iso_source_dir.path }}/{{ item }}"
+    recurse: yes
+  loop: "{{ iso_template_files | json_query('[*].subdir') }}"
+  when: 
+  - iso_template_files is defined
+  - (iso_template_files | json_query('[*].subdir') | length) is gt 0
+
+- name: Fetching base ISO
+  get_url:
+    dest: "{{ iso_source_dir.path }}/source.iso"
+    url: "{{ iso_fetch_url }}"
+
+- name: Extracting ISO
+  shell: /usr/bin/7z x "{{ iso_source_dir.path }}/source.iso" "-o{{ iso_dir.path }}/"
+
+- name: Applying patch-files
+  patch:
+    basedir: "{{ iso_dir.path }}"
+    src: "files/patch-files/{{ iso_patch_file }}"
+    strip: "{{ iso_patch_strip }}"
+  when: iso_patch_file is defined
+
+- name: Line-patching files
+  lineinfile:
+    path: "{{ iso_dir.path }}/{{ item.file }}"
+    regexp: "^{{ item.searchfor }}"
+    line: "{{ item.line }}"
+    insertafter: "^{{ item.after | default(omit) }}"
+  loop: "{{ iso_patch_list }}"
+  when: iso_patch_list is defined
+
+- name: Writing files from templates
+  template:
+    src: "{{ item.name }}.j2"
+    dest: "{{ iso_source_dir.path }}{{ '/'~item.subdir~'/' if item.subdir is defined else '/' }}{{ item.name }}"
+  loop: "{{ iso_template_files }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: iso_template_files is defined
+
+- name: Adding in additional scripts and files
+  copy:
+    src: "{{ item.path }}/"
+    dest: "{{ iso_source_dir.path }}/custom/"
+  loop: "{{ dirmatches.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Adjusting initrd
+  shell: "{{ item.cmd }}"
+  args:
+    chdir: "{{ item.dir | default(iso_source_dir.path) }}"
+    warn: false
+  loop: "{{ initrd_cmds }}"
+  loop_control:
+    label: "{{ item.cmd }}"
+  when: initrd_cmds is defined
+
+- name: Copying files to ISO root
+  copy:
+    remote_src: yes
+    src: "{{ iso_source_dir.path }}/"
+    dest: "{{ iso_dir.path }}"
+
+- name: Removing not needed files/dirs
+  file:
+    state: absent
+    path: "{{ iso_dir.path }}/{{ item }}"
+  loop:
+  - "[BOOT]"
+  - "source.iso"
+
+- name: Copying file containing boot routine
+  copy:
+    src: files/isohdpfx.bin
+    dest: "{{ iso_source_dir.path }}/"
+
+- name: Compiling new ISO
+  shell: xorriso -as mkisofs -r -V "{{ inventory_hostname }}_unattended_netboot" -J -b "{{ geniso_info.bootbin }}" -c "{{ geniso_info.bootcat }}" -no-emul-boot -boot-load-size 4 -boot-info-table -input-charset utf-8 -isohybrid-mbr "{{ iso_source_dir.path }}/isohdpfx.bin" -eltorito-alt-boot -e "{{ geniso_info.bootfile }}" -no-emul-boot -isohybrid-gpt-basdat -o "{{ iso_dir.path }}/{{ ua_iso_name }}" ./
+  args:
+    chdir: "{{ iso_dir.path }}"

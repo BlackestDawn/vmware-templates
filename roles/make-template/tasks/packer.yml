@@ -1,0 +1,60 @@
+---
+- name: Creating temp-directory for Packer
+  tempfile:
+    state: directory
+    suffix: -packer
+  register: packer_dir
+  tags: packer-files
+
+- name: Templating out Packer's files
+  template:
+    src: "{{ lookup('first_found', packer_templating_list) }}"
+    dest: "{{ packer_dir.path }}/{{ item }}"
+  loop: "{{ [ packer_build_file ] + prov_scripts }}"
+  tags: packer-files
+
+# Since we can't retry a block of tasks in Ansible (v2.8) and that Packer (v1.4.3) can't remove running VMs we have to nest blocks
+- block:
+  - name: Safety delete
+    vmware_guest:
+      name: "{{ template_prefix }}{{ template_name }}_{{ build_day }}"
+      state: absent
+      force: yes
+
+  - name: Building template
+    shell: packer build -machine-readable -force -color=false {{ packer_build_file }}      # -machine-readable due to https://github.com/hashicorp/packer/issues/7677
+    args:
+      chdir: "{{ packer_dir.path }}/"
+   #register: task_result
+    async: "{{ comm_timeout + prov_timeout }}"
+    poll: 60
+ #retries: 3
+ #delay: 10
+ #until: task_result is not failed
+  rescue:
+  - name: Safety delete
+    vmware_guest:
+      name: "{{ template_prefix }}{{ template_name }}_{{ build_day }}"
+      state: absent
+      force: yes
+
+  - block:
+    - name: Building template (retry 1)
+      shell: packer build -machine-readable -force -color=false packer.json
+      args:
+        chdir: "{{ packer_dir.path }}/"
+      async: "{{ comm_timeout + prov_timeout }}"
+      poll: 60
+    rescue:
+    - name: Safety delete
+      vmware_guest:
+        name: "{{ template_prefix }}{{ template_name }}_{{ build_day }}"
+        state: absent
+        force: yes
+
+    - name: Building template (retry 2)
+      shell: packer build -machine-readable -force -color=false packer.json
+      args:
+        chdir: "{{ packer_dir.path }}/"
+      async: "{{ comm_timeout + prov_timeout }}"
+      poll: 60

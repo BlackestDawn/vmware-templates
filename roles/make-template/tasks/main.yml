@@ -1,0 +1,8 @@
+---
+- name: Running Packer
+  import_tasks: packer.yml
+  tags: packer
+
+- name: Renaming template
+  import_tasks: rename-template.yml
+  tags: rename

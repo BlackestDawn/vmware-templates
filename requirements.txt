@@ -1,0 +1,11 @@
+#Debian/Ubuntu packages:
+#dos2unix p7zip-full cpio gzip genisoimage whois pwgen wget fakeroot isolinux xorriso python3
+
+#Pip packages:
+pyvmomi>=6.7.1.2018.12
+ansible>=2.8.0
+jmespath>=0.9.4
+
+#Manual handling:
+#Packer (https://www.packer.io/downloads.html)
+#packer-builder-vsphere-iso (https://github.com/jetbrains-infra/packer-builder-vsphere/releases)

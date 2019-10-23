@@ -1,0 +1,51 @@
+---
+- name: Get all templates
+  vmware_vm_facts:
+    vm_type: template
+  register: template_list
+
+- name: Get relevant template's VMware data
+  set_fact:
+    main_template: "{{ template_list.virtual_machines | json_query(query_main) }}"
+    new_template: "{{ template_list.virtual_machines | json_query(query_new) }}"
+    backup_template: "{{ template_list.virtual_machines | json_query(query_backup) }}"
+  vars:
+    query_main: "[?guest_name=='{{ template_prefix }}{{ template_name }}']"
+    query_new: "[?guest_name=='{{ template_prefix }}{{ template_name }}_{{ build_day }}']"
+    query_backup: "[?guest_name=='{{ template_prefix }}{{ template_name }}_backup']"
+
+- name: Marking old backup template for deletion
+  set_fact:
+    backup_template: "{{ old_template | combine(new_name, recursive=True) }}"
+  vars:
+    new_name: "{'guest_name': '{{ template_prefix }}{{ template_name }}_todelete'}"
+  when: backup_template[0] is defined and main_template[0] is defined
+
+- name: Marking current template as backup
+  set_fact:
+    main_template: "{{ current_template | combine(new_name, recursive=True) }}"
+  vars:
+    new_name: "{'guest_name': '{{ template_prefix }}{{ template_name }}_backup'}"
+  when: main_template[0] is defined
+
+- name: Properly naming new template
+  set_fact:
+    new_template: "{{ new_template | combine(new_name, recursive=True) }}"
+  vars:
+    new_name: "{'guest_name': '{{ template_prefix }}{{ template_name }}'}"
+  when: new_template[0] is defined
+
+- name: Setting name and making sure they are marked as template
+  vmware_guest:
+    name: "{{ item.guest_name }}"
+    uuid: "{{ item.uuid }}"
+    is_template: yes
+  loop:
+  - "{{ backup_template }}"
+  - "{{ main_template }}"
+  - "{{ new_template }}"
+
+- name: Removing old template
+  vmware_guest:
+    name: "{{ template_prefix }}{{ template_name }}_todelete"
+    state: absent

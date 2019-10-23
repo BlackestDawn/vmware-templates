@@ -1,0 +1,14 @@
+Write-Output "Downloading Cloudbase-Init..."
+
+(new-object System.Net.WebClient).DownloadFile("https://cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi", "C:\Windows\Temp\CloudbaseInitSetup_Stable_x64.msi")
+
+net user administrator /active:yes
+
+$Host.UI.RawUI.WindowTitle = "Installing Cloudbase-Init..."
+#net start msiserver
+
+$p = Start-Process -Wait -PassThru -FilePath msiexec -ArgumentList "/i C:\Windows\Temp\CloudbaseInitSetup_Stable_x64.msi /qn /norestart /l*v C:\Windows\Temp\CloudbaseInitSetup_Stable_x64.log USERNAME='Administrator'"
+if ($p.ExitCode -ne 0)
+{
+    Write-Output "Cloudbase-Init setup failed. D'oh."
+}

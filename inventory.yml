@@ -1,0 +1,59 @@
+all:
+  children:
+    linux:
+      children:
+        debian_based:
+          children:
+            ubuntu:
+              hosts:
+                ubuntu18:
+                  build_name: "Ubuntu 18.04 LTS"
+                  template_name: Ubuntu_18.04_LTS
+                  mirror_suite: bionic
+        redhat_based:
+          children:
+            centos:
+              hosts:
+                centos7:
+                  build_name: "CentOS 7"
+                  template_name: CentOS_7
+                  mirror_suite: 7.7.1908
+                  iso_fetch_url: http://{{ mirror_host }}/{{ mirror_dir }}/{{ os_versions.major }}/isos/x86_64/CentOS-{{ os_versions.major }}-x86_64-NetInstall-{{ os_versions.patch }}.iso
+                # centos8:
+                #   build_name: "CentOS 8"
+                #   template_name: CentOS_8
+                #   mirror_suite: 8.0.1905
+            # redhat:
+            #   hosts:
+            #     redhat8:
+            #       build_name: "Redhat 8"
+            #       template_name: Redhat_8
+            #       mirror_suite: 8.0
+    windows:
+      children:
+        server_2016:
+          hosts:
+            win2016:
+              build_name: Windows Server 2016
+              template_name: Win2016
+              prov_timeout: 5400
+            win2016core:
+              build_name: Windows Server 2016 Core
+              template_name: Win2016_Core
+              prov_timeout: 3600
+        server_2019:
+          hosts:
+            win2019:
+              build_name: Windows Server 2019
+              template_name: Win2019
+            win2019core:
+              build_name: Windows Server 2019 Core
+              template_name: Win2019_Core
+        server_std:
+          hosts:
+            win2016:
+            win2019:
+        server_core:
+          hosts:
+            win2016core:
+            win2019core:

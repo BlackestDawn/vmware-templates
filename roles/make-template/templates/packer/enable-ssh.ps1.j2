@@ -1,0 +1,19 @@
+Write-Output "Enabling SSH...";
+
+# Enable remoting
+New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\' -Name 'fDenyTSConnections' -Value 0 -PropertyType dword -Force;
+New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp\' -Name 'UserAuthentication' -Value 1 -PropertyType dword -Force;
+Enable-NetFirewallRule -DisplayGroup 'Remote Desktop';
+
+#enable OpenSSH
+Write-Output "Enabling SSH";
+C:\ProgramData\chocolatey\choco.exe install -y openssh -params '"/SSHServerFeature"';
+Set-Service -Name sshd -StartupType 'Automatic';
+& 'C:\Program Files\OpenSSH-Win64\Set-SSHDefaultShell.ps1' "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+
+Set-Service -Name ssh-agent -StartupType 'Automatic';
+(Get-Content C:\ProgramData\ssh\sshd_config) `
+  | ForEach-Object{ $_ -replace 'Match Group administrators','#Match Group administrators'} `
+  | ForEach-Object{ $_ -replace '       AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys','#       AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys'} `
+  | Set-Content C:\ProgramData\ssh\sshd_config
+Restart-Service -Name sshd;

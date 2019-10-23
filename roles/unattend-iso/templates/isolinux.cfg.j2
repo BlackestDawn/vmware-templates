@@ -1,0 +1,10 @@
+default vesamenu.c32
+timeout 20
+
+display boot.msg
+
+label linux
+  menu label Unattended install of {{ build_name }}
+  menu default
+  kernel vmlinuz
+  append initrd=initrd.img ks=cdrom:/ks.cfg quiet

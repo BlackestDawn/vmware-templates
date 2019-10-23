@@ -1,0 +1,22 @@
+---
+- name: Adding in additional scripts and files
+  copy:
+    src: "{{ item.path }}/"
+    dest: "{{ iso_dir.path }}/"
+  loop: "{{ dirmatches.files }}"
+  loop_control:
+    label: "{{ item.path.split('/')[2] }}"
+
+- name: Writing files from templates
+  template:
+    src: "{{ item.name }}.j2"
+    dest: "{{ iso_dir.path }}{{ '/'~item.subdir~'/' if item.subdir is defined else '/' }}{{ item.name }}"
+  loop: "{{ iso_template_files }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: iso_template_files is defined
+
+- name: Building ISO
+  shell: "mkisofs -J -o '{{ iso_dir.path }}/{{ ua_iso_name }}' '{{ iso_dir.path }}'"
+  args:
+    chdir: "{{ iso_dir.path }}/"

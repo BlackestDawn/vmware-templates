@@ -1,0 +1,20 @@
+#Extra needed and/or useful tools
+Write-Output "Installing extra tools...";
+
+C:\ProgramData\chocolatey\choco.exe install -y sdelete wsudo vim-console nano curl wget;
+Set-Alias -Name curl -Value C:\ProgramData\chocolatey\bin\curl.exe -Force -Option AllScope,ReadOnly;
+Set-Alias -Name wget -Value C:\ProgramData\chocolatey\bin\wget.exe -Force -Option AllScope,ReadOnly;
+
+#Add in all scripts from ISO
+New-Item -Path "C:\Windows\System32" -Name 'Scripts' -ItemType Directory;
+Copy-Item -Path E:\scripts\* -Destination "C:\Windows\System32\Scripts" -ErrorAction SilentlyContinue;
+Add-Content -Path $Profile.AllUsersAllHosts -Value '$Env:Path += "C:\Windows\System32\Scripts;"'
+
+#Installing swedish lang-pack
+{% if inventory_hostname in groups['server_2019'] %}
+DISM /Online /Add-Package /PackagePath:E:\languages\server2019_sv-se_lp.cab;
+{% elif inventory_hostname in groups['server_2016'] %}
+DISM /Online /Add-Package /PackagePath:E:\languages\server2016_sv-se_lp.cab;
+{% endif %}
+
+Write-Output "Done installing extra tools...";

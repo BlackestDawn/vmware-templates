@@ -1,0 +1,51 @@
+# Playbook to create a number of templates for VMware
+#
+
+- hosts: all
+  strategy: free
+  gather_facts: no
+  connection: local
+  module_defaults:
+    vmware_guest:
+      name: "{{ template_prefix }}{{ template_name }}"
+      hostname: "{{ vcenter_host }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ vcenter_datacenter }}"
+      folder: "{{ template_folder }}"
+      validate_certs: "{{ vcenter_certs }}"
+      cluster: "{{ vcenter_cluster }}"
+    vmware_guest_facts:
+      name: "{{ template_prefix }}{{ template_name }}"
+      hostname: "{{ vcenter_host }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ vcenter_datacenter }}"
+      validate_certs: "{{ vcenter_certs }}"
+      folder: "/{{ vcenter_datacenter }}/{{ template_folder }}"
+    vmware_vm_facts:
+      hostname: "{{ vcenter_host }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_password }}"
+      validate_certs: "{{ vcenter_certs }}"
+    vsphere_copy:
+      host: "{{ vcenter_host }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ vcenter_datacenter }}"
+      datastore: "{{ iso_datastore }}"
+      path: "{{ remote_ua_iso }}"
+      validate_certs: "{{ vcenter_certs }}"
+    vsphere_file:
+      host: "{{ vcenter_host }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_password }}"
+      datacenter: "{{ vcenter_datacenter }}"
+      datastore: "{{ iso_datastore }}"
+      path: "{{ remote_ua_iso }}"
+      validate_certs: "{{ vcenter_certs }}"
+    tempfile:
+      prefix: "ansible-{{ inventory_hostname }}-"
+
+  roles:
+  - make-template

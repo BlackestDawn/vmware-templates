@@ -1,0 +1,43 @@
+---
+- name: Get new template
+  vmware_guest_facts:
+    name: "{{ template_prefix }}{{ template_name }}_{{ build_day }}"
+  register: new_template
+
+- name: Get main template
+  vmware_guest_facts:
+    name: "{{ template_prefix }}{{ template_name }}"
+  register: main_template
+  ignore_errors: yes
+
+- name: Get backup template
+  vmware_guest_facts:
+    name: "{{ template_prefix }}{{ template_name }}_backup"
+  register: backup_template
+  ignore_errors: yes
+
+- name: Marking old backup template for deletion
+  vmware_guest:
+    name: "{{ template_prefix }}{{ template_name }}_todelete"
+    uuid: "{{ backup_template.instance.hw_product_uuid }}"
+    is_template: yes
+  when: backup_template.instance is defined and main_template.instance is defined
+
+- name: Renaming current template as backup
+  vmware_guest:
+    name: "{{ template_prefix }}{{ template_name }}_backup"
+    uuid: "{{ main_template.instance.hw_product_uuid }}"
+    is_template: yes
+  when: main_template.instance is defined
+
+- name: Properly naming new template
+  vmware_guest:
+    name: "{{ template_prefix }}{{ template_name }}"
+    uuid: "{{ new_template.instance.hw_product_uuid }}"
+    is_template: yes
+  when: new_template.instance is defined
+
+- name: Removing old template
+  vmware_guest:
+    name: "{{ template_prefix }}{{ template_name }}_todelete"
+    state: absent

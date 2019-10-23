@@ -1,0 +1,11 @@
+# Playbook to remaster netinstall ISOs for Linux to include preseed/ks files.
+
+- hosts: all
+  connection: local
+  gather_facts: no
+  module_defaults:
+    tempfile:
+      prefix: "ansible-{{ inventory_hostname }}-"
+
+  roles:
+  - unattend-iso

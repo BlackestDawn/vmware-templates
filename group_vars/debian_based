@@ -1,0 +1,6 @@
+geniso_info:
+  bootbin: isolinux.bin
+  bootcat: boot.cat
+  bootfile: boot/grub/efi.img
+iso_template_files:
+- name: preseed.cfg

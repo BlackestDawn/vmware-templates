@@ -1,0 +1,4 @@
+mirror_host: ftp.funet.fi
+mirror_dir: pub/Linux/images/RedHat
+os_type: rhel7_64Guest
+iso_fetch_url: https://developers.redhat.com/download-manager/file/rhel-{{ mirror_suite }}-x86_64-boot.iso?

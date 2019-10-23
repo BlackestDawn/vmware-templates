@@ -1,0 +1,6 @@
+base_os: linux
+disk_size: 20480
+disk_type: lsilogic
+packer_shell: shell
+prov_scripts:
+- provision-linux.sh

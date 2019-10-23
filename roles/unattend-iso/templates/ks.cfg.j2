@@ -1,0 +1,78 @@
+{% set major_ver = os_versions.major | int %}
+#System language
+lang en_US --addsupport=sv_SE
+#System keyboard
+keyboard us
+#System timezone
+timezone --utc Europe/Stockholm
+#Root password
+rootpw --lock
+#Initial user
+user --name={{ standard_user }} --password {{ standard_pass }} --groups=wheel --shell=/bin/bash
+#Reboot after installation
+reboot
+#Use text mode install
+text
+{% if major_ver <= 7 %}
+#Install OS instead of upgrade
+install
+{% endif %}
+#Use web-mirrors as installation media
+url --url http://{{ mirror_host }}/{{ mirror_dir }}/{{ major_ver }}/{% if major_ver >= 8 %}BaseOS{% else %}os{% endif %}/x86_64/
+repo --name=extras --baseurl=http://{{ mirror_host }}/{{ mirror_dir }}/{{ major_ver }}/extras/x86_64/
+repo --name=fasttrack --baseurl=http://{{ mirror_host }}/{{ mirror_dir }}/{{ major_ver }}/fasttrack/x86_64/
+{% if major_ver <= 7 %}
+repo --name=updates --baseurl=http://{{ mirror_host }}/{{ mirror_dir }}/{{ major_ver }}/updates/x86_64/
+repo --name=centos-sclo-sclo --baseurl=http://{{ mirror_host }}/{{ mirror_dir }}/{{ major_ver }}/sclo/x86_64/sclo/
+repo --name=centos-sclo-rh --baseurl=http://{{ mirror_host }}/{{ mirror_dir }}/{{ major_ver }}/sclo/x86_64/rh/
+{% endif %}
+repo --name=epel --baseurl=http://download.fedoraproject.org/pub/epel/{{ major_ver }}/x86_64/
+#System bootloader configuration
+bootloader --location=mbr 
+#Partition clearing information
+clearpart --all --disklabel=gpt
+#Disk partitioning information
+part biosboot --size=1 --asprimary
+part /boot --fstype=ext2 --size=512 --asprimary 
+part pv.01 --size=15000 --grow 
+volgroup system pv.01 
+logvol swap  --vgname=system --name=lv_swap --fstype=swap --size=2048 
+logvol /     --vgname=system --name=lv_root --fstype=ext4 --size=4096 
+logvol /home --vgname=system --name=lv_home --fstype=ext4 --size=4096 
+logvol /var  --vgname=system --name=lv_var  --fstype=ext4 --size=4096 
+logvol /tmp  --vgname=system --name=lv_tmp  --fstype=ext4 --size=2048 
+#System authorization infomation, changed between RHEL7 and 8
+{% if major_ver >= 8 %}
+authselect --useshadow
+{% else %}
+authconfig --useshadow 
+{% endif %}
+#Network information
+network --bootproto=dhcp --device=ens160
+#Firewall configuration
+firewall --disabled 
+#Do not configure the X Window System
+skipx
+#Services to enable
+services --enable vmtoolsd,sshd
+
+%packages --ignoremissing
+@compat-libraries 
+curl 
+net-tools 
+openssh-server 
+open-vm-tools 
+wget 
+deltarpm 
+%end
+
+%post
+/bin/echo "{{ standard_user }} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/{{ standard_user }}
+chmod 0640 /etc/sudoers.d/{{ standard_user }}
+yum install -y centos-release-scl epel-release
+yum updateinfo
+yum install -y dnf
+mount -o ro /dev/sr0 /mnt
+cp -r /mnt/custom /
+umount /mnt
+%end

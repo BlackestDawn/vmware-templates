@@ -1,0 +1,17 @@
+mirror_host: se.archive.ubuntu.com
+mirror_dir: ubuntu
+os_type: ubuntu64guest
+iso_fetch_url: "http://{{ mirror_host }}/{{ mirror_dir }}/dists/{{ mirror_suite }}/main/installer-amd64/current/images/netboot/mini.iso"
+initrd_cmds:
+- cmd: "zcat \"{{ iso_dir.path }}/initrd.gz\" > \"./initrd\""
+- cmd: "echo \"./preseed.cfg\" | fakeroot cpio -o -H newc -A -F \"./initrd\""
+- cmd: "find \"./custom\" | fakeroot cpio -o -H newc -A -F \"./initrd\""
+- cmd: "cat \"./initrd\" | gzip -9c > \"{{ iso_dir.path }}/initrd.gz\""
+iso_patch_list:
+- file: isolinux.cfg
+  searchfor: timeout
+  line: timeout 10
+- file: boot/grub/grub.cfg
+  searchfor: set timeout
+  line: set timeout 10
+  after: set menu

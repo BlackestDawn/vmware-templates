@@ -1,0 +1,37 @@
+ansible_python_interpreter: /usr/bin/python3
+build_day: "{{ now(fmt='%Y-%m-%d') }}"
+# Standard user and pass to use
+standard_user: "{{ lookup('env', 'ADMIN_USER') | default('<redacted>', true) }}"
+standard_pass: "{{ lookup('env', 'ADMIN_PASS') | default('<redacted>', true) }}"
+# VMware info
+vcenter_host: "{{ lookup('env', 'VMWARE_HOST') }}"
+vcenter_user: "{{ lookup('env', 'VMWARE_USER') }}"
+vcenter_password: "{{ lookup('env', 'VMWARE_PASSWORD') }}"
+vcenter_datacenter: "{{ lookup('env', 'VMWARE_DATACENTER') }}"
+vcenter_cluster: "{{ lookup('env', 'VMWARE_CLUSTER') }}"
+vcenter_datastore: "{{ lookup('env', 'VCENTER_DATASTORE') }}"
+vcenter_folder: "{{ lookup('env', 'VCENTER_FOLDER') }}"
+vcenter_network: "{{ lookup('env', 'VMWARE_NET') | default('_dummy', true) }}"
+vcenter_switch: "{{ lookup('env', 'VMWARE_SWITCH') }}"
+vcenter_certs: "{{ lookup('env', 'VMWARE_CERTS') | default(false, true) }}"
+# Template info
+template_datastore: "{{ lookup('env', 'TEMPLATE_DATASTORE') | default(vcenter_datastore, true) }}"
+template_folder: "{{ lookup('env', 'TEMPLATE_FOLDER') | default('Templates', true) }}"
+template_prefix: Template_
+# Normal and unattend ISO info
+iso_datastore: "{{ lookup('env', 'ISO_DATASTORE') | default(vcenter_datastore, true) }}"
+iso_folder: "{{ lookup('env', 'ISO_FOLDER') | default('isos', true) }}"
+ua_iso_name: "unattended_{{ inventory_hostname }}.iso"
+remote_ua_iso: "{{ iso_folder }}/{{ ua_iso_name }}"
+install_iso: "{{ iso_folder }}/{{ iso_name | default('nokeep.iso') }}"
+# Packer specific settings
+packer_build_file: packer.json
+packer_comm: ssh
+power_timeout: 10m
+comm_timeout: 1800   # Needs to be in seconds because of async param
+prov_timeout: 1800   # Needs to be in seconds because of async param
+# Default HW
+cpu_count: 4
+ram_size: 8192
+disk_size: 40960
+disk_type: lsilogic-sas
